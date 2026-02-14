@@ -1,0 +1,52 @@
+{
+  "name": "dash-analytics",
+  "version": "2.4.0",
+  "private": true,
+  "description": "Enterprise-grade data visualization dashboard for real-time business intelligence",
+  "author": "Nicolas Lumbert <nicolas.lumbert@gmail.com>",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/nicolaslumbert/dash-analytics.git"
+  },
+  "engines": {
+    "node": ">=20.0.0",
+    "pnpm": ">=8.0.0"
+  },
+  "packageManager": "pnpm@8.15.4",
+  "workspaces": [
+    "client",
+    "server"
+  ],
+  "scripts": {
+    "dev": "pnpm run --parallel --filter client --filter server dev",
+    "build": "pnpm run --filter server build && pnpm run --filter client build",
+    "test": "pnpm run --recursive test",
+    "test:ci": "pnpm run --recursive test:ci",
+    "lint": "pnpm run --recursive lint",
+    "lint:fix": "pnpm run --recursive lint:fix",
+    "typecheck": "pnpm run --recursive typecheck",
+    "clean": "pnpm run --recursive clean && rm -rf node_modules",
+    "prepare": "husky install"
+  },
+  "devDependencies": {
+    "@typescript-eslint/eslint-plugin": "^7.1.0",
+    "@typescript-eslint/parser": "^7.1.0",
+    "eslint": "^8.57.0",
+    "eslint-config-prettier": "^9.1.0",
+    "eslint-plugin-import": "^2.29.1",
+    "husky": "^9.0.11",
+    "lint-staged": "^15.2.2",
+    "prettier": "^3.2.5",
+    "typescript": "^5.3.3"
+  },
+  "lint-staged": {
+    "*.{ts,tsx}": [
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "*.{json,md,yml}": [
+      "prettier --write"
+    ]
+  }
+}

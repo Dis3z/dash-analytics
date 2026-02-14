@@ -1,0 +1,90 @@
+version: "3.9"
+
+services:
+  mongo:
+    image: mongo:7.0
+    container_name: da-mongo
+    restart: unless-stopped
+    ports:
+      - "${MONGO_PORT:-27017}:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_USER:-dashadmin}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_PASSWORD:-changeme}
+      MONGO_INITDB_DATABASE: dashanalytics
+    volumes:
+      - mongo_data:/data/db
+      - ./infra/mongo-init.js:/docker-entrypoint-initdb.d/init.js:ro
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - da-network
+
+  redis:
+    image: redis:7-alpine
+    container_name: da-redis
+    restart: unless-stopped
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - da-network
+
+  server:
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+      target: production
+    container_name: da-server
+    restart: unless-stopped
+    ports:
+      - "${PORT:-4000}:4000"
+    environment:
+      NODE_ENV: production
+      PORT: 4000
+      MONGO_URI: mongodb://${MONGO_USER:-dashadmin}:${MONGO_PASSWORD:-changeme}@mongo:27017/dashanalytics?authSource=admin
+      REDIS_URL: redis://redis:6379
+      JWT_SECRET: ${JWT_SECRET}
+      CLIENT_URL: ${CLIENT_URL:-http://localhost:3000}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+    depends_on:
+      mongo:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - da-network
+
+  client:
+    build:
+      context: ./client
+      dockerfile: Dockerfile
+      args:
+        VITE_API_URL: ${VITE_API_URL:-http://localhost:4000/api}
+    container_name: da-client
+    restart: unless-stopped
+    ports:
+      - "${CLIENT_PORT:-3000}:80"
+    depends_on:
+      - server
+    networks:
+      - da-network
+
+volumes:
+  mongo_data:
+    driver: local
+  redis_data:
+    driver: local
+
+networks:
+  da-network:
+    driver: bridge
